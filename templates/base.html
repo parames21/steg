@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureSteg - {% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/gsap@3.12.0/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/filepond@4.30.4/dist/filepond.js"></script>
+    <link href="https://unpkg.com/filepond@4.30.4/dist/filepond.css" rel="stylesheet">
+    <link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet">
+    <script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
+    <script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-purple-900 min-h-screen">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message hidden" data-type="{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Sidebar Navigation -->
+    <nav class="fixed left-0 top-0 h-full w-16 bg-black bg-opacity-50 backdrop-blur-lg">
+        <div class="flex flex-col items-center py-4 space-y-6">
+            <a href="{{ url_for('index') }}" class="nav-icon" title="Home">🏠</a>
+            <a href="{{ url_for('encrypt') }}" class="nav-icon" title="Encrypt">🔒</a>
+            <a href="{{ url_for('decrypt') }}" class="nav-icon" title="Decrypt">🔑</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="ml-16 p-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html> 

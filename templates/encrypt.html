@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% block title %}Encrypt{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="glass-card p-8">
+        <h2 class="text-3xl font-bold mb-6 text-white glow-text">Hide Your Secret</h2>
+        
+        <!-- Display flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mb-4">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form id="encryptForm" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <!-- File Upload with Preview -->
+            <div class="form-group">
+                <div class="file-upload-container relative">
+                    <input type="file" 
+                           id="imageInput"
+                           name="image" 
+                           accept="image/png,image/jpeg,image/jpg"
+                           class="hidden"
+                           required>
+                    <label for="imageInput" class="file-upload-label flex flex-col items-center justify-center cursor-pointer p-4">
+                        <svg class="w-8 h-8 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        <span id="fileLabel" class="text-white">Drop image here or click to upload</span>
+                    </label>
+                </div>
+                <!-- Image Preview Container with Fixed Size -->
+                <div id="previewContainer" class="mt-4 hidden">
+                    <div class="preview-box relative">
+                        <div class="image-wrapper">
+                            <img id="previewImage" src="" alt="Preview" class="preview-image">
+                        </div>
+                        <button type="button" 
+                                onclick="removePreview()" 
+                                class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <p id="imageInfo" class="text-sm text-gray-400 mt-2"></p>
+                </div>
+            </div>
+
+            <!-- Message Input with Character Count -->
+            <div class="form-group">
+                <textarea id="messageInput"
+                          name="message" 
+                          class="glass-input h-32" 
+                          placeholder="Enter your secret message..."
+                          required></textarea>
+                <small id="charCount" class="text-gray-400 mt-1 block">0 characters</small>
+            </div>
+
+            <!-- Password Input with Toggle -->
+            <div class="form-group relative">
+                <input type="password" 
+                       id="passwordInput"
+                       name="password" 
+                       class="glass-input pr-10" 
+                       placeholder="Enter encryption password"
+                       required>
+                <button type="button" 
+                        id="togglePassword"
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-white hover:text-blue-400 focus:outline-none transition-colors p-2"
+                        aria-label="Toggle password visibility">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+
+            <button type="submit" class="neon-button w-full relative">
+                <span class="button-text">🔐 Encrypt Message</span>
+                <div class="loading-spinner hidden"></div>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all required elements
+    const form = document.getElementById('encryptForm');
+    const imageInput = document.getElementById('imageInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const imageInfo = document.getElementById('imageInfo');
+    const fileLabel = document.getElementById('fileLabel');
+    const messageInput = document.getElementById('messageInput');
+    const charCount = document.getElementById('charCount');
+    const passwordInput = document.getElementById('passwordInput');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const dropZone = document.querySelector('.file-upload-label');
+    const toggleButton = document.getElementById('togglePassword');
+    const toggleIcon = toggleButton.querySelector('i');
+
+    // Validate all required elements exist
+    if (!form || !imageInput || !previewContainer || !previewImage || 
+        !imageInfo || !fileLabel || !messageInput || !charCount || 
+        !passwordInput || !submitButton || !dropZone || !toggleButton || !toggleIcon) {
+        console.error('Required elements not found');
+        return;
+    }
+
+    // File Input Change Handler
+    imageInput.addEventListener('change', handleFileSelect);
+
+    // Drag and Drop Handlers
+    dropZone.addEventListener('dragover', handleDragOver);
+    dropZone.addEventListener('dragleave', handleDragLeave);
+    dropZone.addEventListener('drop', handleDrop);
+
+    // Message Character Count
+    messageInput.addEventListener('input', updateCharCount);
+
+    // Form Submission
+    form.addEventListener('submit', handleSubmit);
+
+    // Toggle Password
+    toggleButton.addEventListener('click', function() {
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+            this.setAttribute('aria-label', 'Hide password');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+            this.setAttribute('aria-label', 'Show password');
+        }
+    });
+
+    // Add keyboard support
+    toggleButton.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.click();
+        }
+    });
+
+    // Handler Functions
+    function handleFileSelect() {
+        const file = imageInput.files[0];
+        if (!file) return;
+
+        validateAndPreviewFile(file);
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('border-blue-500', 'bg-blue-500/10');
+    }
+
+    function handleDragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('border-blue-500', 'bg-blue-500/10');
+        
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            validateAndPreviewFile(file);
+        }
+    }
+
+    function validateAndPreviewFile(file) {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+            showError('Please select a PNG or JPG image file.');
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+            showError('File size must be less than 5MB.');
+            return;
+        }
+
+        // Update file input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        imageInput.files = dataTransfer.files;
+
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+            fileLabel.textContent = file.name;
+            
+            // Show file info
+            const size = (file.size / 1024 / 1024).toFixed(2);
+            imageInfo.textContent = `${file.name} (${size} MB)`;
+            
+            // Get image dimensions
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = function() {
+                imageInfo.textContent += ` - ${this.width}x${this.height}px`;
+            };
+        };
+        reader.onerror = function() {
+            showError('Error reading file.');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function updateCharCount() {
+        const count = messageInput.value.length;
+        charCount.textContent = `${count} character${count !== 1 ? 's' : ''}`;
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        
+        // Validate form
+        if (!validateForm()) return;
+
+        // Show loading state
+        setLoadingState(true);
+
+        try {
+            const formData = new FormData(this);
+            const response = await fetch('/encrypt', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const blob = await response.blob();
+            downloadFile(blob);
+            
+            // Show success message
+            showSuccess('Message encrypted successfully!');
+            
+            // Reset form
+            resetForm();
+
+        } catch (error) {
+            showError(error.message || 'Failed to encrypt message.');
+        } finally {
+            setLoadingState(false);
+        }
+    }
+
+    // Utility Functions
+    function validateForm() {
+        if (!imageInput.files[0]) {
+            showError('Please select an image.');
+            return false;
+        }
+
+        if (!messageInput.value.trim()) {
+            showError('Please enter a message.');
+            return false;
+        }
+
+        if (!passwordInput.value) {
+            showError('Please enter a password.');
+            return false;
+        }
+
+        return true;
+    }
+
+    function setLoadingState(isLoading) {
+        submitButton.disabled = isLoading;
+        submitButton.querySelector('.button-text').classList.toggle('opacity-0', isLoading);
+        submitButton.querySelector('.loading-spinner').classList.toggle('hidden', !isLoading);
+    }
+
+    function resetForm() {
+        form.reset();
+        previewContainer.classList.add('hidden');
+        fileLabel.textContent = 'Drop image here or click to upload';
+        charCount.textContent = '0 characters';
+    }
+
+    function downloadFile(blob) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `encrypted_${imageInput.files[0].name}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    function showError(message) {
+        Swal.fire({
+            title: 'Error!',
+            text: message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+
+    function showSuccess(message) {
+        Swal.fire({
+            title: 'Success!',
+            text: message,
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    }
+});
+
+// Remove Preview Function
+function removePreview() {
+    const imageInput = document.getElementById('imageInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const fileLabel = document.getElementById('fileLabel');
+    
+    imageInput.value = '';
+    previewContainer.classList.add('hidden');
+    fileLabel.textContent = 'Drop image here or click to upload';
+}
+</script>
+
+<style>
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+.file-upload-label {
+    min-height: 150px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.file-upload-label:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* New preview styles */
+.preview-box {
+    width: 100%;
+    max-width: 400px; /* Fixed maximum width */
+    margin: 0 auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.image-wrapper {
+    width: 100%;
+    height: 300px; /* Fixed height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(5px);
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Maintains aspect ratio */
+    display: block;
+}
+
+#previewContainer {
+    transition: all 0.3s ease;
+}
+
+.image-info {
+    opacity: 0.7;
+}
+
+/* Animation for preview container */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#previewContainer:not(.hidden) {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Button hover effect */
+#togglePassword:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* Smooth transition for icon changes */
+#togglePassword:focus {
+    outline: 2px solid rgba(59, 130, 246, 0.5);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Ensure the button doesn't interfere with the input */
+#togglePassword {
+    padding: 4px;
+    z-index: 10;
+}
+
+#togglePassword {
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#togglePassword:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#togglePassword:focus {
+    outline: 2px solid rgba(59, 130, 246, 0.5);
+    outline-offset: 2px;
+}
+</style>
+{% endblock %}

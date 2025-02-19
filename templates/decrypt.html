@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+{% block title %}Decrypt{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="glass-card p-8">
+        <h2 class="text-3xl font-bold mb-6 text-white glow-text">Reveal the Hidden</h2>
+        
+        <form id="decryptForm" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <!-- File Upload with Preview -->
+            <div class="form-group">
+                <div class="file-upload-container relative">
+                    <input type="file" 
+                           id="imageInput"
+                           name="image" 
+                           accept="image/png,image/jpeg,image/jpg"
+                           class="hidden"
+                           required>
+                    <label for="imageInput" class="file-upload-label flex items-center justify-center cursor-pointer p-4">
+                        <span id="fileLabel" class="text-white">Drop encrypted image here or click to upload</span>
+                    </label>
+                    <div id="imagePreview" class="mt-2 hidden">
+                        <img src="" alt="Preview" class="max-h-48 rounded-lg mx-auto">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password Input with Toggle -->
+            <div class="form-group relative">
+                <input type="password" 
+                       id="passwordInput"
+                       name="password" 
+                       class="glass-input pr-10" 
+                       placeholder="Enter decryption password"
+                       required>
+                <button type="button" 
+                        id="togglePassword"
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-white hover:text-blue-400 focus:outline-none transition-colors p-2"
+                        aria-label="Toggle password visibility">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+
+            <button type="submit" class="neon-button w-full relative">
+                <span class="button-text">🔓 Decrypt Message</span>
+                <div class="loading-spinner hidden"></div>
+            </button>
+        </form>
+
+        <!-- Decrypted Message Display -->
+        <div id="messageDisplay" class="mt-8 hidden animate-fade-in">
+            <h3 class="text-2xl font-bold mb-4 text-white glow-text">Hidden Message:</h3>
+            <div class="glass-card p-6 message-container">
+                <div class="message-content">
+                    <p id="decryptedMessage" class="text-white text-lg whitespace-pre-wrap leading-relaxed"></p>
+                </div>
+                <div class="message-actions mt-4 flex justify-end space-x-4">
+                    <button id="copyButton" class="neon-button-small">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path>
+                                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path>
+                            </svg>
+                            Copy
+                        </span>
+                    </button>
+                    <button id="closeButton" class="neon-button-small">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            Close
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.message-container {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-content {
+    position: relative;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+}
+
+.neon-button-small {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: transparent;
+    border: 1px solid white;
+    color: white;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.neon-button-small:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.file-upload-label {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    min-height: 100px;
+}
+
+.file-upload-label:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.file-upload-label.dragover {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+#togglePassword {
+    cursor: pointer;
+    border-radius: 4px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#togglePassword:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#togglePassword:focus {
+    outline: 2px solid rgba(59, 130, 246, 0.5);
+    outline-offset: 2px;
+}
+
+#togglePassword i {
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.glass-input {
+    padding-right: 3rem !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('decryptForm');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = imagePreview.querySelector('img');
+    const fileLabel = document.getElementById('fileLabel');
+    const messageDisplay = document.getElementById('messageDisplay');
+    const decryptedMessage = document.getElementById('decryptedMessage');
+    const copyButton = document.getElementById('copyButton');
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    // File Upload Handler
+    imageInput.addEventListener('change', function(e) {
+        handleFileSelect(e.target.files[0]);
+    });
+
+    // Drag and Drop Handlers
+    const dropZone = document.querySelector('.file-upload-label');
+    
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.add('border-blue-500');
+    });
+
+    dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('border-blue-500');
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('border-blue-500');
+        
+        const file = e.dataTransfer.files[0];
+        handleFileSelect(file);
+    });
+
+    function handleFileSelect(file) {
+        if (!file) return;
+        
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please select a valid image file (PNG or JPG)',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            });
+            return;
+        }
+
+        // Update file input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        imageInput.files = dataTransfer.files;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            imagePreview.classList.remove('hidden');
+            fileLabel.textContent = file.name;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Password Toggle
+    const passwordInput = document.getElementById('passwordInput');
+    const toggleButton = document.getElementById('togglePassword');
+    const toggleIcon = toggleButton.querySelector('i');
+    
+    if (!passwordInput || !toggleButton) {
+        console.error('Password elements not found');
+        return;
+    }
+
+    toggleButton.addEventListener('click', function() {
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+            this.setAttribute('aria-label', 'Hide password');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+            this.setAttribute('aria-label', 'Show password');
+        }
+    });
+
+    // Add keyboard support
+    toggleButton.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.click();
+        }
+    });
+
+    // Reset password visibility on form reset
+    passwordInput.form?.addEventListener('reset', function() {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+        toggleButton.setAttribute('aria-label', 'Show password');
+    });
+
+    // Form Submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.querySelector('.button-text').classList.add('opacity-0');
+        submitButton.querySelector('.loading-spinner').classList.remove('hidden');
+        messageDisplay.classList.add('hidden');
+
+        try {
+            const formData = new FormData(this);
+            const response = await fetch('/decrypt', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to decrypt message');
+            }
+
+            // Display decrypted message with typing effect
+            messageDisplay.classList.remove('hidden');
+            decryptedMessage.textContent = '';
+            typeMessage(data.message);
+
+            // Scroll to message
+            messageDisplay.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: error.message || 'Failed to decrypt message. Please check your password and try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        } finally {
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.querySelector('.button-text').classList.remove('opacity-0');
+            submitButton.querySelector('.loading-spinner').classList.add('hidden');
+        }
+    });
+
+    // Typing effect function
+    function typeMessage(message, speed = 30) {
+        let i = 0;
+        decryptedMessage.textContent = '';
+        const typing = setInterval(() => {
+            if (i < message.length) {
+                decryptedMessage.textContent += message.charAt(i);
+                i++;
+            } else {
+                clearInterval(typing);
+            }
+        }, speed);
+    }
+
+    // Copy button
+    document.getElementById('copyButton').addEventListener('click', async function() {
+        try {
+            await navigator.clipboard.writeText(decryptedMessage.textContent);
+            this.querySelector('span').textContent = '✓ Copied!';
+            setTimeout(() => {
+                this.querySelector('span').innerHTML = `
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path>
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path>
+                    </svg>
+                    Copy
+                `;
+            }, 2000);
+        } catch (err) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to copy text to clipboard',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+
+    // Close button
+    document.getElementById('closeButton').addEventListener('click', function() {
+        messageDisplay.classList.add('hidden');
+        decryptedMessage.textContent = '';
+    });
+});
+</script>
+{% endblock %}
