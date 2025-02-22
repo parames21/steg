@@ -24,8 +24,8 @@ The application uses the following technologies:
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd image-steganography
+git clone [<repository-url>](https://github.com/parames21/steg.git)
+cd steg
 ```
 
 2. Install the required dependencies:
@@ -84,8 +84,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[Add your chosen license here]
 
 ## Author
 
-[Your Name]
+Parameswaran S
